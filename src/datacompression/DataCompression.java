@@ -31,9 +31,9 @@ public class DataCompression {
     private static HashMap<Character,String> encoder;
     private static HashMap<String,Character> decoder;
     public static int frequencyHolder[];
-    public static int totalFrequency = 0;
-    public static int totalEncoded = 0;
-    public static int totalDecoded = 0;
+    public static int totalFrequency = 0;//No. of characters in original file
+    public static int totalEncoded = 0;//No. of characters in encoded file
+    public static int totalDecoded = 0;//No. of characters in decoded file
     private final String sourcePath = "C:\\Users\\nEW u\\Documents\\LinkinPark.txt";//C:\Users\nEW u\Documents
     private final String destinationPath = "C:\\Users\\nEW u\\Documents\\NetBeansProjects\\unit1\\DataCompression";
     
@@ -51,32 +51,30 @@ public class DataCompression {
         dc.checkFileSize();
     }
     
+    /*
+    Count the frequency of various ASCII characters
+    */
     private void countFrequency()
     {
-        frequencyHolder = new int[256];
-        
+        frequencyHolder = new int[256];        
         try(FileReader fr = new FileReader(sourcePath))
         {
-            int c;
-            
+            int c;           
             while((c = fr.read())!= -1)
                 if(c<256)
                 {
                     frequencyHolder[c]++;
                     totalFrequency++;
-                }
-            
+                }            
         }
         catch(IOException e)
         {
             System.out.println("IO error :"+e);
         }
-        
-//        for(int i=0;i<255;i++)
-//            if(frequencyHolder[i]!=0)
-//                System.out.println("Ascii "+i+"="+(char)i+":"+frequencyHolder[i]);
     }
-    
+    /*
+        Sets up the min-Heap
+    */
     private Huffman encode()
     {
         int n = frequencyHolder.length;
@@ -126,9 +124,13 @@ public class DataCompression {
             System.out.println((char)i+"\t"+frequencyHolder[i]+"\t"+encoder.get((char)i));
         return root;
     }
-            
+    /*
+     Comparator to check the char with lowest frequency
+    */        
     private static final Comparator<Huffman> FREQUENCY_COMPARATOR = (Huffman o1, Huffman o2) -> (int) (o1.getFrequency()-o2.getFrequency());
-    
+    /*
+    recursively set up the codeword for each character
+    */
     private void traverse(Huffman root,String s)throws NullPointerException
     {   
         if(root.getCode()!=null)
@@ -143,23 +145,18 @@ public class DataCompression {
          traverse(root.getlChild(), s);
          traverse(root.getrChild(), s);
     }
-    
+    /*
+     Generates the key file
+    */
     private void generateKey()
     {
         System.out.println("Inside generateKey()...");
         Set<Map.Entry<Character,String>> set = encoder.entrySet();
-        
-        decoder = new HashMap<>();
         StringBuffer contents=new StringBuffer();
-        
         for(Map.Entry<Character,String> me: set)
-        {
-            //System.out.println(me.getKey()+" :"+me.getValue());
+        {          
             contents.append(getEscapeSequence(me.getKey())).append(",").append(me.getValue()).append("\n");
-            
-            decoder.put(me.getValue(), me.getKey());
         }
-        //System.out.println(contents);
         
         try(FileWriter fw = new FileWriter(destinationPath+"\\key.csv"))
         {
@@ -168,7 +165,9 @@ public class DataCompression {
             Logger.getLogger(DataCompression.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+    /*
+    Converts chars to escape sequence equivalents
+    */
     private static String getEscapeSequence(char h)
     {
         switch(h)
@@ -180,7 +179,9 @@ public class DataCompression {
         }
         
     }
-    
+    /*
+    Generates the encoded file
+    */
     private void generateEncodedFile()
     {
         StringBuffer contents=new StringBuffer();
@@ -190,10 +191,7 @@ public class DataCompression {
             int c;
             while((c = fr.read())!= -1)
                 if(c<256)
-                    contents.append(encoder.get((char)c));
-            
-            
-            
+                    contents.append(encoder.get((char)c));  
         }
         catch(IOException e)
         {
@@ -210,7 +208,9 @@ public class DataCompression {
         
        
     }
-    
+    /*
+    Calculates the entropy 
+    */
     private double amountOfInformation()
     {
         double res=0;
@@ -222,7 +222,9 @@ public class DataCompression {
            }
         return -res;
     }
-    
+    /*
+    Decodes the encoded binary message
+    */
     private void decode(Huffman root)
     {
         Huffman hRoot = root;
@@ -234,13 +236,7 @@ public class DataCompression {
                 if(c<256)
                 {
                     contents.append((char)c);
-//                    root = alternateTraverse(root, (char)c);
-//                    if(root==null)
-//                        root=hRoot;
-                }
-            
-            
-            
+                }   
         }
         catch(IOException e)
         {
@@ -270,7 +266,9 @@ public class DataCompression {
         }
         
     }
-    
+    /*
+    Prove that Huffman coding leads to data compression
+    */
     private void checkFileSize()
     {
         System.out.println("Total no. of bits in original file = "+totalFrequency*8);
