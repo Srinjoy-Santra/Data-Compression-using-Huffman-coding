@@ -32,6 +32,8 @@ public class DataCompression {
     private static HashMap<String,Character> decoder;
     public static int frequencyHolder[];
     public static int totalFrequency = 0;
+    public static int totalEncoded = 0;
+    public static int totalDecoded = 0;
     private final String sourcePath = "C:\\Users\\nEW u\\Documents\\LinkinPark.txt";//C:\Users\nEW u\Documents
     private final String destinationPath = "C:\\Users\\nEW u\\Documents\\NetBeansProjects\\unit1\\DataCompression";
     
@@ -41,9 +43,12 @@ public class DataCompression {
         
         dc.countFrequency();
         System.out.println("Entropy = "+dc.amountOfInformation());
-        dc.encode();
+        Huffman root = dc.encode();
         dc.generateKey();
         dc.generateEncodedFile();
+        
+        dc.decode(root);
+        dc.checkFileSize();
     }
     
     private void countFrequency()
@@ -67,12 +72,12 @@ public class DataCompression {
             System.out.println("IO error :"+e);
         }
         
-        for(int i=0;i<255;i++)
-            if(frequencyHolder[i]!=0)
-                System.out.println("Ascii "+i+"="+(char)i+":"+frequencyHolder[i]);
+//        for(int i=0;i<255;i++)
+//            if(frequencyHolder[i]!=0)
+//                System.out.println("Ascii "+i+"="+(char)i+":"+frequencyHolder[i]);
     }
     
-    private void encode()
+    private Huffman encode()
     {
         int n = frequencyHolder.length;
         
@@ -101,7 +106,7 @@ public class DataCompression {
             z.setFrequency(x.getFrequency()+y.getFrequency());
             z.setlChild(x);
             z.setrChild(y);
-            System.out.println(z.getFrequency());
+            //System.out.println(z.getFrequency());
             minheap.add(z);            
         }
         
@@ -119,6 +124,7 @@ public class DataCompression {
         for(int i=0;i<n;i++)
            if(frequencyHolder[i]!=0)
             System.out.println((char)i+"\t"+frequencyHolder[i]+"\t"+encoder.get((char)i));
+        return root;
     }
             
     private static final Comparator<Huffman> FREQUENCY_COMPARATOR = (Huffman o1, Huffman o2) -> (int) (o1.getFrequency()-o2.getFrequency());
@@ -140,7 +146,7 @@ public class DataCompression {
     
     private void generateKey()
     {
-        System.out.println("Inside generateKey()");
+        System.out.println("Inside generateKey()...");
         Set<Map.Entry<Character,String>> set = encoder.entrySet();
         
         decoder = new HashMap<>();
@@ -153,9 +159,9 @@ public class DataCompression {
             
             decoder.put(me.getValue(), me.getKey());
         }
-        System.out.println(contents);
+        //System.out.println(contents);
         
-        try(FileWriter fw = new FileWriter(destinationPath+"\\key.txt"))
+        try(FileWriter fw = new FileWriter(destinationPath+"\\key.csv"))
         {
             fw.write(contents.toString());
         } catch (IOException ex) {
@@ -193,10 +199,11 @@ public class DataCompression {
         {
             System.out.println("IO error :"+e);
         }
-        System.out.println(contents.length()/8);
-        try( FileOutputStream fw = new FileOutputStream(destinationPath+"\\encoded.txt");)
+        //System.out.println(contents.length()/8);
+        
+        try(FileWriter fw = new FileWriter(destinationPath+"\\encoded.txt");)
         {
-            fw.write(contents.toString().getBytes());
+            fw.write(contents.toString());
         } catch (IOException ex) {
             Logger.getLogger(DataCompression.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -215,4 +222,68 @@ public class DataCompression {
            }
         return -res;
     }
+    
+    private void decode(Huffman root)
+    {
+        Huffman hRoot = root;
+        StringBuffer contents = new StringBuffer();
+        try(FileReader fr = new FileReader(destinationPath+"\\encoded.txt");)
+        {
+            int c;
+            while((c = fr.read())!= -1)
+                if(c<256)
+                {
+                    contents.append((char)c);
+//                    root = alternateTraverse(root, (char)c);
+//                    if(root==null)
+//                        root=hRoot;
+                }
+            
+            
+            
+        }
+        catch(IOException e)
+        {
+            System.out.println("IO error :"+e);
+        }
+        StringBuffer output = new StringBuffer();
+        for(int i=0;i<contents.length();i++)
+        {
+            char ch = contents.charAt(i);
+            if(ch=='0')
+                root =  root.getlChild();
+            else if(ch=='1')
+                root = root.getrChild();
+            if(root.getrChild()==null && root.getlChild()==null)
+            {
+                //System.out.print(root.getCharacter());
+                output.append(root.getCharacter());
+                root=hRoot;
+            }
+        }
+        totalDecoded = output.length();
+        try(FileWriter fw = new FileWriter(destinationPath+"\\decoded.txt");)
+        {
+            fw.write(output.toString());
+        } catch (IOException ex) {
+            Logger.getLogger(DataCompression.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+    }
+    
+    private void checkFileSize()
+    {
+        System.out.println("Total no. of bits in original file = "+totalFrequency*8);
+        for(int i=0;i<frequencyHolder.length;i++)
+           if(frequencyHolder[i]!=0)
+           {
+               
+               totalEncoded+=frequencyHolder[i]*encoder.get((char)i).length();
+           }
+               
+        System.out.println("Total no. of bits in encoded file = "+totalEncoded);
+        System.out.println("Total no. of bits in decoded file = "+totalDecoded*8);
+    }
+    
+   
 }
